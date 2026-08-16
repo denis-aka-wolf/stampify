@@ -8,6 +8,7 @@
 /// изображения, таблицы, линии, фигуры и другие элементы редактора.
 library;
 import 'package:flutter/material.dart';
+import '../document/rect.dart';
 
 /// Базовый класс для всех элементов документа Stampify.
 ///
@@ -21,26 +22,14 @@ abstract class StampifyElement {
   /// Создает элемент документа.
   const StampifyElement({
     required this.id,
-    required this.x,
-    required this.y,
-    required this.width,
-    required this.height,
+    required this.rect
   });
 
   /// Уникальный идентификатор элемента.
   final String id;
 
   /// Расстояние от левого края страницы в миллиметрах.
-  final double x;
-
-  /// Расстояние от верхнего края страницы в миллиметрах.
-  final double y;
-
-  /// Ширина элемента в миллиметрах.
-  final double width;
-
-  /// Высота элемента в миллиметрах.
-  final double height;
+  final StampifyRect rect;
 }
 
 /// Текстовый элемент документа.
@@ -52,10 +41,7 @@ class TextElement extends StampifyElement {
   /// Создает текстовый элемент документа.
   const TextElement({
     required super.id,
-    required super.x,
-    required super.y,
-    required super.width,
-    required super.height,
+    required super.rect,
     required this.text,
     this.fontSize = 12,
     this.fontWeight = FontWeight.normal,

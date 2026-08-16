@@ -4,6 +4,7 @@
 // тема приложения и корневой экран редактора.
 
 import 'package:flutter/material.dart';
+import 'package:stampify/core/document/rect.dart';
 
 import 'core/document/document.dart';
 import 'core/document/page_format.dart';
@@ -98,20 +99,14 @@ StampifyDocument _StampifyDocument(){
       elements: [
         TextElement(
           id: 'title',
-          x: 20,
-          y: 20,
-          width: 100,
-          height: 15,
+          rect: StampifyRect(x: 20, y: 20, width: 100, height: 15),
           text: 'Stampify',
           fontSize: 24,
           fontWeight: FontWeight.bold,
         ),
         TextElement(
           id: 'subtitle',
-          x: 20,
-          y: 40,
-          width: 150,
-          height: 10,
+          rect: StampifyRect(x: 20, y: 40, width: 150, height: 10),
           text: 'Система печати документов',
           fontSize: 12,
         ),

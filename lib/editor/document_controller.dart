@@ -13,6 +13,7 @@ import 'package:flutter/foundation.dart';
 
 import '../core/document/document.dart';
 import '../core/document/element.dart';
+import '../core/document/rect.dart';
 
 /// Управляет состоянием документа во время его редактирования.
 ///
@@ -54,42 +55,87 @@ class DocumentController extends ChangeNotifier {
 
     final element = _document.elements[elementIndex];
 
-    final updatedElement = _moveElement(
+    final maxX = _document.widthMm - element.rect.width;
+    final maxY = _document.heightMm - element.rect.height;
+
+    final clampedX = x.clamp(0.0, maxX);
+    final clampedY = y.clamp(0.0, maxY);
+
+    final updatedElement = _copyElementWithRect(
       element,
-      x: x,
-      y: y,
+      element.rect.copyWith(
+        x: clampedX,
+        y: clampedY,
+      ),
     );
 
-    final elements = List<StampifyElement>.from(
-      _document.elements,
+    _updateElement(
+      elementIndex,
+      updatedElement,
     );
-
-    elements[elementIndex] = updatedElement;
-
-    _document = StampifyDocument(
-      pageFormat: _document.pageFormat,
-      orientation: _document.orientation,
-      elements: elements,
-    );
-
-    notifyListeners();
   }
 
-  /// Создает новую версию элемента с измененными координатами.
+  /// Изменяет размер элемента.
   ///
-  /// Этот метод сохраняет остальные свойства элемента без изменений.
-  StampifyElement _moveElement(
-    StampifyElement element, {
-    required double x,
-    required double y,
+  /// [width] и [height] задаются в миллиметрах.
+  ///
+  /// Элемент не может стать меньше [minWidth] × [minHeight]
+  /// и не может выйти за пределы страницы.
+  void resizeElement({
+    required String elementId,
+    required double width,
+    required double height,
+    double minWidth = 10,
+    double minHeight = 5,
   }) {
+    final elementIndex = _document.elements.indexWhere(
+      (element) => element.id == elementId,
+    );
+
+    if (elementIndex == -1) {
+      return;
+    }
+
+    final element = _document.elements[elementIndex];
+
+    final maxWidth = _document.widthMm - element.rect.x;
+    final maxHeight = _document.heightMm - element.rect.y;
+
+    final clampedWidth = width.clamp(
+      minWidth,
+      maxWidth < minWidth ? minWidth : maxWidth,
+    );
+
+    final clampedHeight = height.clamp(
+      minHeight,
+      maxHeight < minHeight ? minHeight : maxHeight,
+    );
+
+    final updatedElement = _copyElementWithRect(
+      element,
+      element.rect.copyWith(
+        width: clampedWidth,
+        height: clampedHeight,
+      ),
+    );
+
+    _updateElement(
+      elementIndex,
+      updatedElement,
+    );
+  }
+
+  /// Создает копию элемента с новой геометрией.
+  ///
+  /// Остальные свойства элемента сохраняются без изменений.
+  StampifyElement _copyElementWithRect(
+    StampifyElement element,
+    StampifyRect rect,
+  ) {
     if (element is TextElement) {
       return TextElement(
         id: element.id,
-        x: x,
-        y: y,
-        width: element.width,
-        height: element.height,
+        rect: rect,
         text: element.text,
         fontSize: element.fontSize,
         fontWeight: element.fontWeight,
@@ -98,5 +144,25 @@ class DocumentController extends ChangeNotifier {
     }
 
     return element;
+  }
+
+  /// Заменяет элемент документа и уведомляет интерфейс об изменении.
+  void _updateElement(
+    int elementIndex,
+    StampifyElement element,
+  ) {
+    final elements = List<StampifyElement>.from(
+      _document.elements,
+    );
+
+    elements[elementIndex] = element;
+
+    _document = StampifyDocument(
+      pageFormat: _document.pageFormat,
+      orientation: _document.orientation,
+      elements: elements,
+    );
+
+    notifyListeners();
   }
 }

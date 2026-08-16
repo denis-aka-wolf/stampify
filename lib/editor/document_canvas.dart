@@ -1,33 +1,31 @@
-// Отвечает за визуальное отображение страницы Stampify в редакторе.
+// Отвечает за визуальное отображение и редактирование документа Stampify.
 //
-// DocumentCanvas преобразует физические размеры документа,
-// заданные в миллиметрах, в экранные координаты.
+// DocumentCanvas преобразует физические координаты документа,
+// заданные в миллиметрах, в экранные пиксели.
 //
-// Сам документ не зависит от размера экрана или масштаба Canvas.
-// Canvas является только визуальным представлением документа.
+// Canvas отвечает за:
+// - отображение страницы;
+// - отображение элементов;
+// - выбор элементов;
+// - перемещение элементов;
+// - изменение размеров элементов.
 //
-// В дальнейшем этот компонент будет отвечать за:
-// - масштабирование страницы;
-// - отображение элементов документа;
-// - систему координат;
-// - выделение элементов;
-// - взаимодействие мышью и касанием;
-// - перемещение и изменение размеров элементов.
+// Сам документ остается независимым от размера экрана.
 
 import 'package:flutter/material.dart';
 
 import '../core/document/document.dart';
 import '../core/document/element.dart';
+import '../core/document/rect.dart';
 import 'document_controller.dart';
 
-/// Отображает физическую страницу Stampify на экране.
+/// Отображает страницу Stampify и ее элементы.
 ///
-/// Размер документа хранится в миллиметрах, а [DocumentCanvas]
-/// автоматически подбирает масштаб для отображения страницы
-/// внутри доступной области интерфейса.
+/// Canvas является визуальным представлением документа и отвечает
+/// за пользовательское взаимодействие с элементами.
 ///
-/// В дальнейшем Canvas станет основной областью визуального
-/// редактора документов.
+/// Координаты элементов хранятся в миллиметрах, а Canvas
+/// преобразует их в экранные координаты с учетом текущего масштаба.
 class DocumentCanvas extends StatefulWidget {
   /// Создает Canvas для указанного документа.
   const DocumentCanvas({
@@ -49,14 +47,20 @@ class DocumentCanvas extends StatefulWidget {
 
 /// Состояние интерактивного Canvas документа.
 class _DocumentCanvasState extends State<DocumentCanvas> {
-  /// Идентификатор текущего выбранного элемента.
+  /// Идентификатор выбранного элемента.
   String? _selectedElementId;
 
-  /// Начальная позиция элемента перед началом перемещения.
+  /// Позиция указателя в момент начала перемещения.
   Offset? _dragStartPosition;
 
-  /// Начальные координаты элемента перед началом перемещения.
+  /// Начальная позиция элемента в миллиметрах.
   Offset? _dragStartElementPosition;
+
+  /// Геометрия элемента в момент начала изменения размера.
+  StampifyRect? _resizeStartRect;
+
+  /// Позиция указателя в момент начала изменения размера.
+  Offset? _resizeStartPosition;
 
   /// Строит визуальное представление документа.
   @override
@@ -96,81 +100,264 @@ class _DocumentCanvasState extends State<DocumentCanvas> {
     );
   }
 
-  /// Создает экранное представление отдельного элемента документа.
+  /// Создает экранное представление элемента документа.
   Widget _buildElement(
     StampifyElement element,
     double scale,
   ) {
     if (element is TextElement) {
-      final isSelected = element.id == _selectedElementId;
+      return _buildTextElement(
+        element,
+        scale,
+      );
+    }
 
-      return Positioned(
-        left: element.x * scale,
-        top: element.y * scale,
-        width: element.width * scale,
-        height: element.height * scale,
+    return const SizedBox.shrink();
+  }
+
+  /// Создает интерактивное представление текстового элемента.
+  Widget _buildTextElement(
+    TextElement element,
+    double scale,
+  ) {
+    final isSelected = element.id == _selectedElementId;
+
+    return Positioned(
+      left: element.rect.x * scale,
+      top: element.rect.y * scale,
+      width: element.rect.width * scale,
+      height: element.rect.height * scale,
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _selectedElementId = element.id;
+          });
+        },
+        onPanStart: (details) {
+          setState(() {
+            _selectedElementId = element.id;
+            _dragStartPosition = details.globalPosition;
+            _dragStartElementPosition = Offset(
+              element.rect.x,
+              element.rect.y,
+            );
+          });
+        },
+        onPanUpdate: (details) {
+          if (_dragStartPosition == null ||
+              _dragStartElementPosition == null) {
+            return;
+          }
+
+          final delta = details.globalPosition - _dragStartPosition!;
+
+          final deltaMmX = delta.dx / scale;
+          final deltaMmY = delta.dy / scale;
+
+          widget.controller.moveElement(
+            elementId: element.id,
+            x: _dragStartElementPosition!.dx + deltaMmX,
+            y: _dragStartElementPosition!.dy + deltaMmY,
+          );
+        },
+        onPanEnd: (_) {
+          _dragStartPosition = null;
+          _dragStartElementPosition = null;
+        },
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              decoration: isSelected
+                  ? BoxDecoration(
+                      border: Border.all(
+                        color: Colors.blue,
+                        width: 1,
+                      ),
+                    )
+                  : null,
+              child: Text(
+                element.text,
+                textAlign: element.textAlign,
+                style: TextStyle(
+                  fontSize: element.fontSize,
+                  fontWeight: element.fontWeight,
+                ),
+              ),
+            ),
+            if (isSelected) ...[
+              _buildResizeHandle(
+                element: element,
+                scale: scale,
+                alignment: Alignment.topLeft,
+                cursor: SystemMouseCursors.resizeUpLeft,
+                handlePosition: _ResizeHandlePosition.topLeft,
+              ),
+              _buildResizeHandle(
+                element: element,
+                scale: scale,
+                alignment: Alignment.topRight,
+                cursor: SystemMouseCursors.resizeUpRight,
+                handlePosition: _ResizeHandlePosition.topRight,
+              ),
+              _buildResizeHandle(
+                element: element,
+                scale: scale,
+                alignment: Alignment.bottomLeft,
+                cursor: SystemMouseCursors.resizeDownLeft,
+                handlePosition: _ResizeHandlePosition.bottomLeft,
+              ),
+              _buildResizeHandle(
+                element: element,
+                scale: scale,
+                alignment: Alignment.bottomRight,
+                cursor: SystemMouseCursors.resizeDownRight,
+                handlePosition: _ResizeHandlePosition.bottomRight,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Создает один маркер изменения размера элемента.
+  Widget _buildResizeHandle({
+    required TextElement element,
+    required double scale,
+    required Alignment alignment,
+    required MouseCursor cursor,
+    required _ResizeHandlePosition handlePosition,
+  }) {
+    const handleSize = 10.0;
+
+    return Align(
+      alignment: alignment,
+      child: MouseRegion(
+        cursor: cursor,
         child: GestureDetector(
-          onTap: () {
-            setState(() {
-              _selectedElementId = element.id;
-            });
-          },
           onPanStart: (details) {
-            setState(() {
-              _selectedElementId = element.id;
-              _dragStartPosition = details.globalPosition;
-              _dragStartElementPosition = Offset(
-                element.x,
-                element.y,
-              );
-            });
+            _resizeStartPosition = details.globalPosition;
+            _resizeStartRect = element.rect;
           },
           onPanUpdate: (details) {
-            if (_dragStartPosition == null ||
-                _dragStartElementPosition == null) {
+            if (_resizeStartPosition == null ||
+                _resizeStartRect == null) {
               return;
             }
 
-            final delta = details.globalPosition - _dragStartPosition!;
+            final delta = details.globalPosition - _resizeStartPosition!;
 
             final deltaMmX = delta.dx / scale;
             final deltaMmY = delta.dy / scale;
 
-            final newX = _dragStartElementPosition!.dx + deltaMmX;
-            final newY = _dragStartElementPosition!.dy + deltaMmY;
+            final rect = _resizeStartRect!;
+
+            var newX = rect.x;
+            var newY = rect.y;
+            var newWidth = rect.width;
+            var newHeight = rect.height;
+
+            switch (handlePosition) {
+              case _ResizeHandlePosition.topLeft:
+                newX = rect.x + deltaMmX;
+                newY = rect.y + deltaMmY;
+                newWidth = rect.width - deltaMmX;
+                newHeight = rect.height - deltaMmY;
+                break;
+
+              case _ResizeHandlePosition.topRight:
+                newY = rect.y + deltaMmY;
+                newWidth = rect.width + deltaMmX;
+                newHeight = rect.height - deltaMmY;
+                break;
+
+              case _ResizeHandlePosition.bottomLeft:
+                newX = rect.x + deltaMmX;
+                newWidth = rect.width - deltaMmX;
+                newHeight = rect.height + deltaMmY;
+                break;
+
+              case _ResizeHandlePosition.bottomRight:
+                newWidth = rect.width + deltaMmX;
+                newHeight = rect.height + deltaMmY;
+                break;
+            }
+
+            if (newWidth < 10) {
+              if (handlePosition.isLeft) {
+                newX = rect.right - 10;
+              }
+
+              newWidth = 10;
+            }
+
+            if (newHeight < 5) {
+              if (handlePosition.isTop) {
+                newY = rect.bottom - 5;
+              }
+
+              newHeight = 5;
+            }
 
             widget.controller.moveElement(
               elementId: element.id,
               x: newX,
               y: newY,
             );
+
+            widget.controller.resizeElement(
+              elementId: element.id,
+              width: newWidth,
+              height: newHeight,
+            );
           },
           onPanEnd: (_) {
-            _dragStartPosition = null;
-            _dragStartElementPosition = null;
+            _resizeStartPosition = null;
+            _resizeStartRect = null;
           },
           child: Container(
-            decoration: isSelected
-                ? BoxDecoration(
-                    border: Border.all(
-                      color: Colors.blue,
-                      width: 1,
-                    ),
-                  )
-                : null,
-            child: Text(
-              element.text,
-              textAlign: element.textAlign,
-              style: TextStyle(
-                fontSize: element.fontSize,
-                fontWeight: element.fontWeight,
+            width: handleSize,
+            height: handleSize,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(
+                color: Colors.blue,
               ),
             ),
           ),
         ),
-      );
-    }
+      ),
+    );
+  }
+}
 
-    return const SizedBox.shrink();
+/// Определяет положение маркера изменения размера.
+enum _ResizeHandlePosition {
+  /// Верхний левый угол.
+  topLeft,
+
+  /// Верхний правый угол.
+  topRight,
+
+  /// Нижний левый угол.
+  bottomLeft,
+
+  /// Нижний правый угол.
+  bottomRight,
+}
+
+/// Предоставляет информацию о положении resize-маркера.
+extension on _ResizeHandlePosition {
+  /// Возвращает true, если маркер находится слева.
+  bool get isLeft {
+    return this == _ResizeHandlePosition.topLeft ||
+        this == _ResizeHandlePosition.bottomLeft;
+  }
+
+  /// Возвращает true, если маркер находится сверху.
+  bool get isTop {
+    return this == _ResizeHandlePosition.topLeft ||
+        this == _ResizeHandlePosition.topRight;
   }
 }
