@@ -7,8 +7,9 @@ import 'package:flutter/material.dart';
 
 import 'core/document/document.dart';
 import 'core/document/page_format.dart';
-import 'editor/document_canvas.dart';
 import 'core/document/element.dart';
+import 'editor/document_canvas.dart';
+import 'editor/document_controller.dart';
 
 /// Корневой виджет приложения Stampify.
 ///
@@ -41,14 +42,58 @@ class StampifyApp extends StatelessWidget {
 ///
 /// Позже этот экран станет полноценным редактором с панелями
 /// инструментов, инспектором свойств, слоями и областью документа.
-class StampifyEditorPage extends StatelessWidget {
+class StampifyEditorPage extends StatefulWidget {
   /// Создает главный экран редактора.
   const StampifyEditorPage({super.key});
 
+  /// Создает состояние главного экрана редактора.
+  @override
+  State<StampifyEditorPage> createState() => _StampifyEditorPageState();
+}
+
+/// Состояние главного экрана редактора Stampify.
+class _StampifyEditorPageState extends State<StampifyEditorPage> {
+  late final DocumentController _controller;
+
+  @override
+  void initState(){
+    super.initState();
+    final document = _StampifyDocument();
+    _controller = DocumentController(document: document);
+    _controller.addListener(_onDocumentChanged);
+  }
+
+  /// Освобождает ресурсы контроллера при удалении экрана.
+  @override
+  void dispose(){
+    _controller.removeListener(_onDocumentChanged);
+    _controller.dispose();
+    super.dispose();
+  }
+  
+  /// Обновляет интерфейс после изменения документа.
+  void _onDocumentChanged(){
+    setState((){});
+  }
+  
   /// Строит интерфейс редактора документов.
   @override
   Widget build(BuildContext context) {
-    const document = StampifyDocument(
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Stampify'),
+      ),
+      body: DocumentCanvas(
+        document: _controller.document,
+        controller: _controller
+      ),
+    );
+  }
+}
+
+// Возвращает сформированный StampifyDocument
+StampifyDocument _StampifyDocument(){
+  return StampifyDocument(
       pageFormat: PageFormat.a4,
       elements: [
         TextElement(
@@ -72,14 +117,4 @@ class StampifyEditorPage extends StatelessWidget {
         ),
       ],
     );
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Stampify'),
-      ),
-      body: DocumentCanvas(
-        document: document,
-      ),
-    );
-  }
 }
