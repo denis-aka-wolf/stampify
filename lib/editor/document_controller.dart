@@ -61,17 +61,12 @@ class DocumentController extends ChangeNotifier {
     final clampedX = x.clamp(0.0, maxX);
     final clampedY = y.clamp(0.0, maxY);
 
-    final updatedElement = _copyElementWithRect(
-      element,
-      element.rect.copyWith(
+    updateElementRect(
+      elementId: elementId,
+      rect: element.rect.copyWith(
         x: clampedX,
         y: clampedY,
       ),
-    );
-
-    _updateElement(
-      elementIndex,
-      updatedElement,
     );
   }
 
@@ -111,12 +106,34 @@ class DocumentController extends ChangeNotifier {
       maxHeight < minHeight ? minHeight : maxHeight,
     );
 
-    final updatedElement = _copyElementWithRect(
-      element,
-      element.rect.copyWith(
+    updateElementRect(
+      elementId: elementId,
+      rect: element.rect.copyWith(
         width: clampedWidth,
         height: clampedHeight,
       ),
+    );
+  }
+
+  /// Полностью заменяет геометрию элемента.
+  ///
+  /// [elementId] — идентификатор элемента.
+  /// [rect] — новая позиция и размер элемента.
+  void updateElementRect({
+    required String elementId,
+    required StampifyRect rect,
+  }) {
+    final elementIndex = _document.elements.indexWhere(
+      (element) => element.id == elementId,
+    );
+
+    if (elementIndex == -1) {
+      return;
+    }
+
+    final updatedElement = _copyElementWithRect(
+      _document.elements[elementIndex],
+      rect,
     );
 
     _updateElement(

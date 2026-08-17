@@ -9,6 +9,8 @@ import 'package:stampify/core/document/rect.dart';
 import 'core/document/document.dart';
 import 'core/document/page_format.dart';
 import 'core/document/element.dart';
+import 'editor/document_inspector.dart';
+
 import 'editor/document_canvas.dart';
 import 'editor/document_controller.dart';
 
@@ -56,6 +58,33 @@ class StampifyEditorPage extends StatefulWidget {
 class _StampifyEditorPageState extends State<StampifyEditorPage> {
   late final DocumentController _controller;
 
+  /// Идентификатор выбранного элемента.
+  String? _selectedElementId;
+
+  /// Выбирает элемент документа.
+  void _selectElement(String? elementId) {
+    setState(() {
+      _selectedElementId = elementId;
+    });
+  }
+
+  /// Возвращает выбранный элемент документа.
+  StampifyElement? _getSelectedElement() {
+    final elementId = _selectedElementId;
+
+    if (elementId == null) {
+      return null;
+    }
+
+    for (final element in _controller.document.elements) {
+      if (element.id == elementId) {
+        return element;
+      }
+    }
+
+    return null;
+  }
+
   @override
   void initState(){
     super.initState();
@@ -84,9 +113,21 @@ class _StampifyEditorPageState extends State<StampifyEditorPage> {
       appBar: AppBar(
         title: const Text('Stampify'),
       ),
-      body: DocumentCanvas(
-        document: _controller.document,
-        controller: _controller
+      body: Column(
+        children: [
+          DocumentInspector(
+            element: _getSelectedElement(),
+            controller: _controller,
+          ),
+          Expanded(
+            child: DocumentCanvas(
+              document: _controller.document,
+              controller: _controller,
+              selectedElementId: _selectedElementId,
+              onElementSelected: _selectElement,
+            ),
+          ),
+        ],
       ),
     );
   }

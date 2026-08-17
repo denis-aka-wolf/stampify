@@ -32,6 +32,8 @@ class DocumentCanvas extends StatefulWidget {
     super.key,
     required this.document,
     required this.controller,
+    required this.selectedElementId,
+    required this.onElementSelected,
   });
 
   /// Документ, который необходимо отобразить.
@@ -40,6 +42,12 @@ class DocumentCanvas extends StatefulWidget {
   /// Контроллер, через который изменяется документ.
   final DocumentController controller;
 
+  /// Идентификатор элемента, выбранного в редакторе.
+  final String? selectedElementId;
+
+  /// Вызывается при выборе элемента на Canvas.
+  final ValueChanged<String?> onElementSelected;
+
   /// Создает состояние Canvas.
   @override
   State<DocumentCanvas> createState() => _DocumentCanvasState();
@@ -47,8 +55,6 @@ class DocumentCanvas extends StatefulWidget {
 
 /// Состояние интерактивного Canvas документа.
 class _DocumentCanvasState extends State<DocumentCanvas> {
-  /// Идентификатор выбранного элемента.
-  String? _selectedElementId;
 
   /// Позиция указателя в момент начала перемещения.
   Offset? _dragStartPosition;
@@ -120,7 +126,7 @@ class _DocumentCanvasState extends State<DocumentCanvas> {
     TextElement element,
     double scale,
   ) {
-    final isSelected = element.id == _selectedElementId;
+    final isSelected = element.id == widget.selectedElementId;
 
     return Positioned(
       left: element.rect.x * scale,
@@ -129,13 +135,12 @@ class _DocumentCanvasState extends State<DocumentCanvas> {
       height: element.rect.height * scale,
       child: GestureDetector(
         onTap: () {
-          setState(() {
-            _selectedElementId = element.id;
-          });
+          widget.onElementSelected(element.id);
         },
         onPanStart: (details) {
+          widget.onElementSelected(element.id);
+
           setState(() {
-            _selectedElementId = element.id;
             _dragStartPosition = details.globalPosition;
             _dragStartElementPosition = Offset(
               element.rect.x,
