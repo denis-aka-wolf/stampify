@@ -10,8 +10,8 @@
 
 import 'package:flutter/material.dart';
 
-import '../../../core/document/element.dart';
-import '../../document_controller.dart';
+import '../../core/document/element.dart';
+import '../document_controller.dart';
 
 /// Панель свойств выбранного элемента.
 ///

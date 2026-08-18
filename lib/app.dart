@@ -4,14 +4,14 @@
 // тема приложения и корневой экран редактора.
 
 import 'package:flutter/material.dart';
-import 'package:stampify/editor/panels/layers/layers_panel.dart';
+import 'package:stampify/editor/panels/layers_panel.dart';
 
 import 'core/document/rect.dart';
 import 'core/document/document.dart';
 import 'core/document/page_format.dart';
 import 'core/document/element.dart';
 
-import 'editor/panels/inspector/inspector_panel.dart';
+import 'editor/panels/inspector_panel.dart';
 import 'editor/document_canvas.dart';
 import 'editor/document_controller.dart';
 
