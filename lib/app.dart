@@ -4,23 +4,15 @@
 // тема приложения и корневой экран редактора.
 
 import 'package:flutter/material.dart';
-import 'package:stampify/editor/panels/layers_panel.dart';
 
-import 'core/document/rect.dart';
-import 'core/document/document.dart';
-import 'core/document/page_format.dart';
-import 'core/document/element.dart';
+import 'core/core.dart';
 
-import 'editor/panels/inspector_panel.dart';
 import 'editor/document_canvas.dart';
 import 'editor/document_controller.dart';
 
-import 'editor/docking/docking_controller.dart';
-import 'editor/docking/dock_layout_state.dart';
-import 'editor/docking/dock_position.dart';
-
-import 'editor/docking/widgets/dock_layout.dart';
-import 'editor/docking/widgets/dock_panel_registry.dart';
+import 'editor/docking/docking.dart';
+import 'editor/docking/widgets/dock_widgets.dart';
+import 'editor/panels/panels.dart';
 
 /// Корневой виджет приложения Stampify.
 ///
