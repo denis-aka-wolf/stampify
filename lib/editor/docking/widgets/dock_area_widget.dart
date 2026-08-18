@@ -69,6 +69,7 @@ class DockAreaWidget extends StatelessWidget {
   /// Группы с заданным размером получают фиксированный размер.
   /// Группы с размером `0` занимают оставшееся пространство.
   List<Widget> _buildGroups() {
+    // ignore: unused_field
     final fixedSize = area.groups
         .where((group) => group.size > 0)
         .fold<double>(

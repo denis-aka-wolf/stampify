@@ -43,6 +43,7 @@ class _InspectorPanelState extends State<InspectorPanel> {
   late final TextEditingController _heightController;
 
   /// Идентификатор элемента, для которого отображаются поля.
+  // ignore: unused_field
   String? _elementId;
 
   @override

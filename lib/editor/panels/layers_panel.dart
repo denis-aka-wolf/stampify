@@ -30,6 +30,7 @@ class LayersPanel extends StatefulWidget{
 class _LayersPanelState extends State<LayersPanel> {
 
   /// Идентификатор элемента, для которого отображаются поля.
+  // ignore: unused_field
   String? _elementId;
 
   @override
