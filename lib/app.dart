@@ -4,15 +4,25 @@
 // тема приложения и корневой экран редактора.
 
 import 'package:flutter/material.dart';
-import 'package:stampify/core/document/rect.dart';
 
+import 'core/document/rect.dart';
 import 'core/document/document.dart';
 import 'core/document/page_format.dart';
 import 'core/document/element.dart';
-import 'editor/document_inspector.dart';
 
+import 'editor/document_inspector.dart';
 import 'editor/document_canvas.dart';
 import 'editor/document_controller.dart';
+
+import 'editor/docking/docking_controller.dart';
+import 'editor/docking/dock_layout_state.dart';
+import 'editor/docking/dock_area_state.dart';
+import 'editor/docking/dock_group_state.dart';
+import 'editor/docking/dock_panel_state.dart';
+import 'editor/docking/dock_position.dart';
+
+import 'editor/docking/widgets/dock_layout.dart';
+import 'editor/docking/widgets/dock_panel_registry.dart';
 
 /// Корневой виджет приложения Stampify.
 ///
@@ -57,10 +67,80 @@ class StampifyEditorPage extends StatefulWidget {
 /// Состояние главного экрана редактора Stampify.
 class _StampifyEditorPageState extends State<StampifyEditorPage> {
   late final DocumentController _controller;
+  
+  late final DockingController _dockingController;
+  late final DockPanelRegistry _panelRegistry;
 
   /// Идентификатор выбранного элемента.
   String? _selectedElementId;
 
+  @override
+  void initState() {
+    super.initState();
+
+    final document = _StampifyDocument();
+
+    _controller = DocumentController(
+      document: document,
+    );
+
+    _controller.addListener(_onDocumentChanged);
+
+    _dockingController = DockingController(
+      initialLayout: DockLayoutState.initial(),
+    );
+
+    _panelRegistry = DockPanelRegistry();
+
+    _registerDockingPanels();
+
+    _dockingController.addPanel(
+      position: DockPosition.right,
+      panelId: 'inspector',
+    );
+
+    _dockingController.addPanel(
+      position: DockPosition.left,
+      panelId: 'layers',
+    );
+  }
+
+  /// Строит интерфейс редактора документов.
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Stampify'),
+      ),
+      body: DockLayout(
+        controller: _dockingController,
+        registry: _panelRegistry,
+        child: DocumentCanvas(
+          document: _controller.document,
+          controller: _controller,
+          selectedElementId: _selectedElementId,
+          onElementSelected: _selectElement,
+        ),
+      ),
+    );
+  }
+
+  /// Освобождает ресурсы контроллера при удалении экрана.
+  @override
+  void dispose(){
+    _controller.removeListener(_onDocumentChanged);
+    _controller.dispose();
+
+    _dockingController.dispose();
+
+    super.dispose();
+  }
+  
+  /// Обновляет интерфейс после изменения документа.
+  void _onDocumentChanged(){
+    setState((){});
+  }
+  
   /// Выбирает элемент документа.
   void _selectElement(String? elementId) {
     setState(() {
@@ -85,50 +165,25 @@ class _StampifyEditorPageState extends State<StampifyEditorPage> {
     return null;
   }
 
-  @override
-  void initState(){
-    super.initState();
-    final document = _StampifyDocument();
-    _controller = DocumentController(document: document);
-    _controller.addListener(_onDocumentChanged);
-  }
+  /// Регистрируем новые докпанели
+  void _registerDockingPanels() {
+    _panelRegistry.register(
+      'inspector',
+      (context) {
+        return DocumentInspector(
+          element: _getSelectedElement(),
+          controller: _controller,
+        );
+      },
+    );
 
-  /// Освобождает ресурсы контроллера при удалении экрана.
-  @override
-  void dispose(){
-    _controller.removeListener(_onDocumentChanged);
-    _controller.dispose();
-    super.dispose();
-  }
-  
-  /// Обновляет интерфейс после изменения документа.
-  void _onDocumentChanged(){
-    setState((){});
-  }
-  
-  /// Строит интерфейс редактора документов.
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Stampify'),
-      ),
-      body: Column(
-        children: [
-          DocumentInspector(
-            element: _getSelectedElement(),
-            controller: _controller,
-          ),
-          Expanded(
-            child: DocumentCanvas(
-              document: _controller.document,
-              controller: _controller,
-              selectedElementId: _selectedElementId,
-              onElementSelected: _selectElement,
-            ),
-          ),
-        ],
-      ),
+    _panelRegistry.register(
+      'layers',
+      (context) {
+        return const Center(
+          child: Text('Layers'),
+        );
+      },
     );
   }
 }
