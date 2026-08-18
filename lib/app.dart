@@ -93,6 +93,23 @@ class _StampifyEditorPageState extends State<StampifyEditorPage> {
       position: DockPosition.left,
       panelId: 'layers',
     );
+    
+    _dockingController.addPanel(
+      position: DockPosition.top,
+      panelId: 'history',
+    );
+    
+    _dockingController.addPanel(
+      position: DockPosition.right,
+      panelId: 'assets',
+    );
+    
+    _dockingController.addPanel(
+      position: DockPosition.bottom,
+      panelId: 'console',
+    );
+
+
   }
 
   /// Строит интерфейс редактора документов.
@@ -167,6 +184,7 @@ class _StampifyEditorPageState extends State<StampifyEditorPage> {
       },
     );
 
+    // Тестовая панель
     _panelRegistry.register(
       'layers',
       (context) {
@@ -175,6 +193,33 @@ class _StampifyEditorPageState extends State<StampifyEditorPage> {
           controller: _controller,
         );
       },
+    );
+
+    // Тестовая панель
+    _panelRegistry.register(
+      'history',
+      (context) => const TestPanel(
+        title: 'History',
+        icon: Icons.history,
+      ),
+    );
+
+    // Тестовая панель
+    _panelRegistry.register(
+      'assets',
+      (context) => const TestPanel(
+        title: 'Assets',
+        icon: Icons.folder,
+      ),
+    );
+    
+    // Тестовая панель
+    _panelRegistry.register(
+      'console',
+      (context) => const TestPanel(
+        title: 'Console',
+        icon: Icons.terminal,
+      ),
     );
   }
 }

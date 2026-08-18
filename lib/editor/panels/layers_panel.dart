@@ -29,10 +29,6 @@ class LayersPanel extends StatefulWidget{
 /// Состояние Inspector.
 class _LayersPanelState extends State<LayersPanel> {
 
-  /// Идентификатор элемента, для которого отображаются поля.
-  // ignore: unused_field
-  String? _elementId;
-
   @override
   void initState() {
     super.initState();

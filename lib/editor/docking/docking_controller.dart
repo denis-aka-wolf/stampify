@@ -195,11 +195,24 @@ class DockingController extends ChangeNotifier {
       }
 
       final panels = List<DockPanelState>.from(group.panels);
+      
+      // Определим первую панель чтобы ее сделать активной
+      final removedPanel = group.panels.firstWhere(
+        (panel) => panel.id == panelId,
+      );
 
       panels.removeWhere(
         (panel) => panel.id == panelId,
       );
 
+      // Делаем активной первую панель
+      if (removedPanel.active && panels.isNotEmpty) {
+        panels[0] = panels[0].copyWith(
+          active: true,
+        );
+      }
+
+      // Перестроим индексы панелей
       _reindexPanels(panels);
 
       if (panels.isEmpty) {
@@ -312,6 +325,12 @@ class DockingController extends ChangeNotifier {
 
       _reindexPanels(sourcePanels);
 
+      if (panel.active && sourcePanels.isNotEmpty) {
+        sourcePanels[0] = sourcePanels[0].copyWith(
+          active: true,
+        );
+      }
+
       // Добавляем панель в целевую группу.
       final targetPanels = List<DockPanelState>.from(
         targetGroup.panels,
@@ -395,6 +414,12 @@ class DockingController extends ChangeNotifier {
 
     _reindexPanels(sourcePanels);
 
+    // Установим активную панель
+    if (panel.active && sourcePanels.isNotEmpty) {
+      sourcePanels[0] = sourcePanels[0].copyWith(
+        active: true,
+      );
+    }
     if (sourcePanels.isEmpty) {
       sourceGroups.removeAt(sourceGroupPosition);
     } else {
