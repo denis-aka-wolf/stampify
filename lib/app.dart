@@ -4,21 +4,19 @@
 // тема приложения и корневой экран редактора.
 
 import 'package:flutter/material.dart';
+import 'package:stampify/editor/panels/layers/layers_panel.dart';
 
 import 'core/document/rect.dart';
 import 'core/document/document.dart';
 import 'core/document/page_format.dart';
 import 'core/document/element.dart';
 
-import 'editor/document_inspector.dart';
+import 'editor/panels/inspector/inspector_panel.dart';
 import 'editor/document_canvas.dart';
 import 'editor/document_controller.dart';
 
 import 'editor/docking/docking_controller.dart';
 import 'editor/docking/dock_layout_state.dart';
-import 'editor/docking/dock_area_state.dart';
-import 'editor/docking/dock_group_state.dart';
-import 'editor/docking/dock_panel_state.dart';
 import 'editor/docking/dock_position.dart';
 
 import 'editor/docking/widgets/dock_layout.dart';
@@ -78,7 +76,7 @@ class _StampifyEditorPageState extends State<StampifyEditorPage> {
   void initState() {
     super.initState();
 
-    final document = _StampifyDocument();
+    final document = _stampifyDocument();
 
     _controller = DocumentController(
       document: document,
@@ -170,7 +168,7 @@ class _StampifyEditorPageState extends State<StampifyEditorPage> {
     _panelRegistry.register(
       'inspector',
       (context) {
-        return DocumentInspector(
+        return InspectorPanel(
           element: _getSelectedElement(),
           controller: _controller,
         );
@@ -180,8 +178,9 @@ class _StampifyEditorPageState extends State<StampifyEditorPage> {
     _panelRegistry.register(
       'layers',
       (context) {
-        return const Center(
-          child: Text('Layers'),
+        return LayersPanel(
+          element: _getSelectedElement(),
+          controller: _controller,
         );
       },
     );
@@ -189,7 +188,7 @@ class _StampifyEditorPageState extends State<StampifyEditorPage> {
 }
 
 // Возвращает сформированный StampifyDocument
-StampifyDocument _StampifyDocument(){
+StampifyDocument _stampifyDocument(){
   return StampifyDocument(
       pageFormat: PageFormat.a4,
       elements: [

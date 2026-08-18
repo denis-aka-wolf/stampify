@@ -10,19 +10,16 @@
 
 import 'package:flutter/material.dart';
 
-import '../core/document/element.dart';
-import '../core/document/rect.dart';
-import 'document_controller.dart';
+import '../../../core/document/element.dart';
+import '../../document_controller.dart';
 
-/// Верхняя панель свойств выбранного элемента.
+/// Панель свойств выбранного элемента.
 ///
-/// Позволяет редактировать координаты X и Y, а также ширину и высоту.
-///
-/// Если элемент не выбран, Inspector отображает сообщение
-/// о необходимости выбрать элемент.
-class DocumentInspector extends StatefulWidget {
+/// Inspector рассчитан на размещение внутри docking-панели.
+/// Поэтому элементы управления располагаются вертикально.
+class InspectorPanel extends StatefulWidget{
   /// Создает Inspector документа.
-  const DocumentInspector({
+  const InspectorPanel({
     super.key,
     required this.element,
     required this.controller,
@@ -34,22 +31,20 @@ class DocumentInspector extends StatefulWidget {
   /// Контроллер документа.
   final DocumentController controller;
 
-  /// Создает состояние Inspector.
   @override
-  State<DocumentInspector> createState() => _DocumentInspectorState();
+  State<InspectorPanel> createState() => _InspectorPanelState();
 }
 
 /// Состояние Inspector.
-class _DocumentInspectorState extends State<DocumentInspector> {
+class _InspectorPanelState extends State<InspectorPanel> {
   late final TextEditingController _xController;
   late final TextEditingController _yController;
   late final TextEditingController _widthController;
   late final TextEditingController _heightController;
 
-  /// Идентификатор элемента, для которого сейчас отображаются поля.
+  /// Идентификатор элемента, для которого отображаются поля.
   String? _elementId;
 
-  /// Создает состояние Inspector.
   @override
   void initState() {
     super.initState();
@@ -62,7 +57,6 @@ class _DocumentInspectorState extends State<DocumentInspector> {
     _updateControllers();
   }
 
-  /// Освобождает контроллеры текстовых полей.
   @override
   void dispose() {
     _xController.dispose();
@@ -73,9 +67,8 @@ class _DocumentInspectorState extends State<DocumentInspector> {
     super.dispose();
   }
 
-  /// Обновляет значения полей на основе текущего элемента.
   @override
-  void didUpdateWidget(DocumentInspector oldWidget) {
+  void didUpdateWidget(InspectorPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
 
     if (oldWidget.element?.id != widget.element?.id ||
@@ -84,7 +77,7 @@ class _DocumentInspectorState extends State<DocumentInspector> {
     }
   }
 
-  /// Синхронизирует текстовые поля с геометрией элемента.
+  /// Синхронизирует поля с выбранным элементом.
   void _updateControllers() {
     final element = widget.element;
 
@@ -102,7 +95,7 @@ class _DocumentInspectorState extends State<DocumentInspector> {
     _heightController.text = _format(element.rect.height);
   }
 
-  /// Очищает все поля Inspector.
+  /// Очищает поля.
   void _clearControllers() {
     _xController.clear();
     _yController.clear();
@@ -110,12 +103,12 @@ class _DocumentInspectorState extends State<DocumentInspector> {
     _heightController.clear();
   }
 
-  /// Форматирует числовое значение для отображения.
+  /// Форматирует значение.
   String _format(double value) {
     return value.toStringAsFixed(2);
   }
 
-  /// Применяет значение поля к выбранному элементу.
+  /// Применяет значение поля к элементу.
   void _applyValue({
     required TextEditingController controller,
     required String type,
@@ -141,14 +134,18 @@ class _DocumentInspectorState extends State<DocumentInspector> {
       case 'x':
         widget.controller.updateElementRect(
           elementId: element.id,
-          rect: rect.copyWith(x: value),
+          rect: rect.copyWith(
+            x: value,
+          ),
         );
         break;
 
       case 'y':
         widget.controller.updateElementRect(
           elementId: element.id,
-          rect: rect.copyWith(y: value),
+          rect: rect.copyWith(
+            y: value,
+          ),
         );
         break;
 
@@ -170,92 +167,152 @@ class _DocumentInspectorState extends State<DocumentInspector> {
     }
   }
 
-  /// Создает числовое поле Inspector.
+  /// Создает числовое поле.
   Widget _buildNumberField({
     required String label,
-    required String suffix,
     required TextEditingController controller,
     required String type,
   }) {
-    return SizedBox(
-      width: 130,
-      child: TextField(
-        controller: controller,
-        keyboardType: const TextInputType.numberWithOptions(
-          decimal: true,
-        ),
-        decoration: InputDecoration(
-          labelText: label,
-          suffixText: suffix,
-          border: const OutlineInputBorder(),
-          isDense: true,
-        ),
-        onSubmitted: (_) {
-          _applyValue(
-            controller: controller,
-            type: type,
-          );
-        },
+    return TextField(
+      controller: controller,
+      keyboardType: const TextInputType.numberWithOptions(
+        decimal: true,
+        signed: true,
       ),
+      decoration: InputDecoration(
+        labelText: label,
+        suffixText: 'mm',
+        border: const OutlineInputBorder(),
+        isDense: true,
+      ),
+      onSubmitted: (_) {
+        _applyValue(
+          controller: controller,
+          type: type,
+        );
+      },
     );
   }
 
   /// Строит Inspector.
   @override
   Widget build(BuildContext context) {
-    if (widget.element == null) {
-      return Container(
-        height: 64,
+    final theme = Theme.of(context);
+
+    return Container(
+      color: theme.colorScheme.surfaceContainer,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildHeader(context),
+          const Divider(height: 1),
+          Expanded(
+            child: widget.element == null
+                ? _buildEmptyState(context)
+                : _buildProperties(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Заголовок Inspector.
+  Widget _buildHeader(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: 16,
         ),
-        alignment: Alignment.centerLeft,
-        color: Theme.of(context).colorScheme.surfaceContainer,
+        child: Row(
+          children: [
+            Text(
+              'Inspector',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Состояние Inspector без выбранного элемента.
+  Widget _buildEmptyState(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
         child: Text(
           'Выберите элемент',
+          textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyMedium,
         ),
-      );
-    }
-
-    return Container(
-      height: 80,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 8,
       ),
-      color: Theme.of(context).colorScheme.surfaceContainer,
-      child: Row(
+    );
+  }
+
+  /// Свойства выбранного элемента.
+  Widget _buildProperties(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          _buildSectionTitle(
+            context,
+            'Положение',
+          ),
+
+          const SizedBox(height: 12),
+
           _buildNumberField(
             label: 'X',
-            suffix: 'mm',
             controller: _xController,
             type: 'x',
           ),
-          const SizedBox(width: 8),
+
+          const SizedBox(height: 12),
+
           _buildNumberField(
             label: 'Y',
-            suffix: 'mm',
             controller: _yController,
             type: 'y',
           ),
-          const SizedBox(width: 8),
+
+          const SizedBox(height: 24),
+
+          _buildSectionTitle(
+            context,
+            'Размер',
+          ),
+
+          const SizedBox(height: 12),
+
           _buildNumberField(
             label: 'Width',
-            suffix: 'mm',
             controller: _widthController,
             type: 'width',
           ),
-          const SizedBox(width: 8),
+
+          const SizedBox(height: 12),
+
           _buildNumberField(
             label: 'Height',
-            suffix: 'mm',
             controller: _heightController,
             type: 'height',
           ),
         ],
       ),
+    );
+  }
+
+  /// Заголовок секции Inspector.
+  Widget _buildSectionTitle(
+    BuildContext context,
+    String title,
+  ) {
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.labelLarge,
     );
   }
 }
